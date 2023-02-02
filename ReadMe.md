@@ -6,8 +6,11 @@ List of Resources used for this challenge.
 5. S3 Bucket: An S3 bucket was created to hold the latest python code (get_ec2.zip) for the lambda and the buildspec (codebuild.zip) to be used by the CodeBuild.
 
 https://api-id.execute-api.us-east-2.amazomaws.com/region/name?region=xxx
+
 I have used the query string parameter region (us-east-2/eu-central-1 etc) for which the code returns the list of servers.
+
 Python Code : The python code uses boto3 library. It takes the region from the query string parameter of the api request and return the list of servers in that region of the account.
+
 BuildSpec : The build spec file is created to fetch the latest zipped python code and upload that code to lambda.
 
 
