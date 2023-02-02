@@ -1,0 +1,83 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Creates CodeBuild Project
+
+Parameters:
+  BuildDescription:
+    Description: Description of this CodeBuild project.
+    Type: String
+    Default: This code build project is to upload a docker image with latest version of Terraform
+  BuildTimeoutinMinutes:
+    Description: Build Time out in minutes.
+    Type: String
+    Default: 60
+  BuildServiceRole:
+    Description: Service role to be used in Build project.
+    Type: String
+    Default: # codebuild role arn
+  SourceType:
+    Description: Source to the build project code.
+    Type: String
+    AllowedValues:
+      - BITBUCKET 
+      - CODECOMMIT 
+      - CODEPIPELINE
+      - GITHUB
+      - NO_SOURCE 
+      - S3
+    Default: S3
+  Location:
+    Description: Location for the build project code inside Source.
+    Type: String
+    Default: tanish-test-bkt/codebuild.zip
+  FunctionSubnets:
+    Type: CommaDelimitedList
+    Description: Subnets for codebuild project
+    Default: # list of subnets separated by comma
+  FunctionSG:
+    Type: CommaDelimitedList
+    Description: Security groups for codebuild project
+    Default: # list of sg separated by comma
+  FunctionVPC:
+    Type: String
+    Description: VPC Id for codebuild project
+    Default: # vpc id
+  Image:
+    Description: Location for the build project code inside Source.
+    Type: String
+    Default: aws/codebuild/amazonlinux2-x86_64-standard:3.0
+  Name:
+    Description: Name of the codebuild project.
+    Type: String
+    Default: tanish-test-codebuild
+Resources:
+  CICDCodeBuild:
+    Type: AWS::CodeBuild::Project
+    Properties: 
+      Artifacts: 
+        Type: NO_ARTIFACTS
+      Description: !Ref BuildDescription
+      Environment: 
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: !Ref Image
+        PrivilegedMode: true
+        Type: LINUX_CONTAINER 
+      Name: !Ref Name
+      QueuedTimeoutInMinutes: !Ref BuildTimeoutinMinutes
+      ServiceRole: !Ref BuildServiceRole
+      Source: 
+        Type: S3
+        Location: !Ref Location
+      TimeoutInMinutes: !Ref BuildTimeoutinMinutes
+      VpcConfig: 
+        SecurityGroupIds: !Ref FunctionSG
+        Subnets: !Ref FunctionSubnets
+        VpcId: !Ref FunctionVPC
+      LogsConfig:
+        CloudWatchLogs:
+          Status: ENABLED
+
+Outputs:
+  CodeBuildResourceArn:
+    Value: !GetAtt CICDCodeBuild.Arn
+    Export:
+      Name: !Ref Name

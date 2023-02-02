@@ -1,0 +1,66 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Create a KMS encrypted S3 bucket'
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+    - Label:
+        default: "Tags Configuration"
+      Parameters:
+        - S3BucketName
+    - Label:
+        default: "S3 Bucket Configuration"
+      Parameters:
+        - BucketRegion
+        - CMKARN
+Parameters:
+  S3BucketName:
+    Description: 'S3 bucket name'
+    Type: String
+    AllowedPattern: '[-a-zA-Z0-9/_]+'
+    Default: tanish-test-bkt  #bucket name
+  BucketRegion:
+    Description: S3 Bucket Region
+    Type: String
+    Default: eu-central-1
+  CMKARN:
+    Type: String
+    Description: Application specific encryption key ID ARN
+    Default: #kms key
+
+Resources:
+  S3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref S3BucketName
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              KMSMasterKeyID: !Ref CMKARN
+              SSEAlgorithm: 'aws:kms'
+      LoggingConfiguration:
+        DestinationBucketName: !Ref S3BucketName
+        LogFilePrefix: "s3-access-log/"
+      AccessControl: LogDeliveryWrite
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: TRUE
+        BlockPublicPolicy: TRUE
+        IgnorePublicAcls: TRUE
+        RestrictPublicBuckets: TRUE
+  BucketPolicy:
+    Type: AWS::S3::BucketPolicy 
+    Properties:
+      Bucket: !Ref S3Bucket
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: Enforce SSL
+            Effect: Deny
+            Principal: "*"
+            Action: 
+              - s3:* 
+            Resource: 
+              - !Sub arn:aws:s3:::${S3Bucket}
+              - !Sub arn:aws:s3:::${S3Bucket}/*
+            Condition:
+              Bool:
+                aws:SecureTransport: false

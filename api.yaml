@@ -1,0 +1,88 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Parameters:
+  EnvironmentName:
+    Description: Name of the environment being deployed to.
+    Type: String
+    Default: sandbox
+  Appname:
+    Type: String
+    Default: poc
+  LambdaARN:
+    Type: String
+    Default: #lambda arn
+  
+
+
+
+Resources:
+  apiGateway:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Description: Alexa API Gateway
+      ApiKeySourceType: HEADER
+      EndpointConfiguration:
+        Types:
+          - REGIONAL
+      Name: !Join [ '', [!Ref EnvironmentName, '-', !Ref Appname, '-', 'apigateway' ]]
+      Policy:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal: '*'
+            Action: 'execute-api:Invoke'
+            Resource:
+              - 'execute-api:/*'
+
+  ApiGatewayModel:
+    Type: AWS::ApiGateway::Model
+    Properties:
+      ContentType: 'application/json'
+      RestApiId: !Ref apiGateway
+      Schema: {}
+
+  apiGatewayDeployment:
+    Type: AWS::ApiGateway::Deployment
+    DependsOn: 
+      - nameMethod
+    Properties:
+      RestApiId: !Ref apiGateway
+      StageName: 'region'
+
+  name:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId: !GetAtt apiGateway.RootResourceId
+      PathPart: name
+      RestApiId: !Ref apiGateway
+
+  nameMethod:
+    Type: 'AWS::ApiGateway::Method'
+    Properties:
+      HttpMethod: GET
+      ResourceId: !Ref name
+      RestApiId: !Ref apiGateway
+      AuthorizationType: NONE
+      RequestParameters:
+        method.request.querystring.region: true
+      Integration:
+        Type: AWS_PROXY
+        Uri: !Join [ '', ['arn:aws:apigateway:', !Ref 'AWS::Region' , ':lambda:path/2015-03-31/functions/', !Ref LambdaARN, '/invocations' ]]
+        IntegrationHttpMethod: POST
+      RequestValidatorId: !Ref RequestValidator
+      MethodResponses:
+      - StatusCode: '200'
+        ResponseModels:
+          application/json: 'Empty'
+  RequestValidator:
+    Type: AWS::ApiGateway::RequestValidator
+    Properties:
+      Name: reqvalidator
+      RestApiId: !Ref apiGateway
+      ValidateRequestParameters:  true
+  lambdaApiGatewayInvoke:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref LambdaARN
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${apiGateway}/region/GET/name

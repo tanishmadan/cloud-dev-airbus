@@ -1,0 +1,69 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Server Infrastructure template
+Parameters:
+  Environment:
+    Description: Environment type
+    Type: String
+    Default: sandbox
+    AllowedValues:
+      - sandbox
+    ConstraintDescription: must specify sandbox
+  InstanceProfile:
+    Description: Name of the instance profile name that will be used in this stack.
+    Type: String
+    Default: #instance profile attached to the instance role
+  SecurityGroups:
+    Description: Baxter Core Windows Security Group
+    Type: String
+    Default: # security group to be attached to the server
+  KeyName:
+    Type: String
+    Default: # key pair created for the server
+  KMSKeyId:
+    Description: KMS Key encryption ARN
+    Type: String
+    Default: #KMS key for encryption of volumes
+Mappings:
+  ImageID:
+    sandbox:
+      AMI: # golden ami id
+  SubnetID:
+    Subnet1:
+      Value: # subnet id where the server has to be deployed
+  InstanceType:
+    sandbox:
+      AppInst01: m5.2xlarge # server type
+Resources:
+  sandboxServer:
+    Type: 'AWS::EC2::Instance'
+    Properties:
+      InstanceType: !FindInMap 
+        - InstanceType
+        - !Ref Environment
+        - AppInst01
+      IamInstanceProfile: !Ref InstanceProfile
+      SubnetId: !FindInMap 
+        - SubnetID
+        - PrivAppSubnet1
+        - Value
+      SecurityGroupIds:
+        - !Ref SecurityGroups
+      ImageId: !FindInMap 
+        - ImageID
+        - !Ref Environment
+        - AMI
+      KeyName: !Ref KeyName
+      BlockDeviceMappings:
+        - DeviceName: /dev/sda1
+          Ebs:
+            VolumeSize: 100
+            VolumeType: gp3 # volume type
+            KmsKeyId: !Ref KMSKeyId
+            Encrypted: true
+            DeleteOnTermination: true
+Outputs:
+  sandboxInstID:
+    Description: The Instance ID
+    Value: !Ref sandboxServer
+    Export:
+      Name: !Sub '${AWS::StackName}-Id-${Environment}-InstID'

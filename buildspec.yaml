@@ -1,0 +1,12 @@
+version: 0.2
+
+phases:
+  pre_build:
+     commands:
+       - echo Start
+  build:
+    commands:
+      - aws lambda update-function-code --function-name get-ec2-lambd --s3-bucket tanish-test-bkt --s3-key get_ec2.zip
+  post_build:
+     commands:
+       - echo Build completed

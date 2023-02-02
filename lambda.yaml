@@ -1,0 +1,34 @@
+AWSTemplateFormatVersion: '2010-09-09'
+
+Parameters:
+  Environment:
+    Type: String
+    Default: sandbox
+  LambdaSecurityGroupIds:
+    Type: CommaDelimitedList
+    Default: #security group attached to lambda separated by comma
+  SubnetIds:
+    Type: CommaDelimitedList
+    Default: #subnets seperated by comma
+  LambdaRoleArn:
+    Type: String
+    Default: #role arn
+Resources:  
+  Function:
+    Type: 'AWS::Lambda::Function'
+    Properties:
+      FunctionName: 'get-ec2-lambda'
+      Runtime: python3.9
+      Handler: get_ec2.lambda_handler
+      Role: !Ref LambdaRoleArn
+      MemorySize: 1024
+      Timeout: 5
+      Code:
+        S3Bucket: 'tanish-test-bkt'
+        S3Key: get_ec2.zip
+      VpcConfig:
+        SecurityGroupIds: !Ref LambdaSecurityGroupIds
+        SubnetIds: !Ref SubnetIds
+      Tags:
+        - Key: Env
+          Value: !Ref Environment
